@@ -1,4 +1,3 @@
-#include "rclcpp/rclcpp.hpp"
 #include "disparity.hpp"
 
 int main(int argc, char **argv)
@@ -25,9 +24,7 @@ int main(int argc, char **argv)
     else
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "No camera info provided");
 
-    ros::NodeHandle node_handle;
-
-    auto node = std::make_shared<DisparityNode>(node_handle);
+    auto node = std::make_shared<DisparityNode>();
 
     rclcpp::spin(node);
 
