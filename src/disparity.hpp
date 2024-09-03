@@ -39,5 +39,5 @@ class DisparityNode : public rclcpp::Node
 
         std::shared_ptr<message_filters::Synchronizer<approximate_sync_policy>> syncApproximate;
 
-        rclcpp::Publisher<stereo_msgs::msg::DisparityImage>::SharedPtr publisher;
+        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher;
 };
