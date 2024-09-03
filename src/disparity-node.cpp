@@ -10,8 +10,8 @@ DisparityNode::DisparityNode(): Node("node")
 
 
 
-    left_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, "/image_left/image_raw");
-    right_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, "/image_right/image_raw");
+    left_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, left_image_topic);
+    right_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, right_image_topic);
 
     syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy>> (approximate_sync_policy(10), *left_sub, *right_sub);
     syncApproximate->registerCallback(std::bind(&DisparityNode::GrabStereo, this, std::placeholders::_1, std::placeholders::_2));
