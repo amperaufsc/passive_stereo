@@ -21,7 +21,6 @@ DisparityNode::DisparityNode(): Node("node")
 }
 void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const ImageMsg::ConstSharedPtr msgRight)
 {
-    RCLCPP_INFO(this->get_logger(), "Here");
     try
     {
          cv_ptrLeft = cv_bridge::toCvShare(msgLeft); 
@@ -36,7 +35,10 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
     auto sendmsg = stereo_msgs::msg::DisparityImage();
 
     RCLCPP_INFO(this->get_logger(), "Image received");
-    //cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create();
-    
+
+    cv::Mat imgL;
+    cv::Mat imgR;
+
+    cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create(16,9);
 
 }

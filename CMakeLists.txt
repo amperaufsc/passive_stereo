@@ -12,6 +12,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(message_filters REQUIRED)
+find_package(OpenCV)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -21,6 +22,7 @@ add_executable(disparity
         src/disparity-node.cpp
 )
 ament_target_dependencies(disparity rclcpp sensor_msgs stereo_msgs cv_bridge message_filters)
+target_link_libraries(disparity ${OpenCV_LIBS})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
