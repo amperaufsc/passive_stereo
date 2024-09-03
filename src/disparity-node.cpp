@@ -36,9 +36,11 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
 
     RCLCPP_INFO(this->get_logger(), "Image received");
 
-    cv::Mat imgL;
-    cv::Mat imgR;
+    cv::Mat imgL = cv_ptrLeft->image;
+    cv::Mat imgR = cv_ptrRight->image;
+    cv::Mat disp;
 
     cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create(16,9);
+    stereo->compute(imgL, imgR, disp);
 
 }
