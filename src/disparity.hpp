@@ -23,16 +23,20 @@
 class DisparityNode : public rclcpp::Node
 {
     public:
-        DisparityNode();
+        DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::msg::CameraInfo infoR);
 
     private:
         using ImageMsg = sensor_msgs::msg::Image;
         typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image> approximate_sync_policy;
 
         void GrabStereo(const sensor_msgs::msg::Image::ConstSharedPtr msgRGB, const sensor_msgs::msg::Image::ConstSharedPtr msgD);
+        void RectifyImages(cv::Mat imgL, cv::Mat imgR);
 
         cv_bridge::CvImageConstPtr cv_ptrLeft;
         cv_bridge::CvImageConstPtr cv_ptrRight;
+
+        sensor_msgs::msg::CameraInfo left_camera_info;
+        sensor_msgs::msg::CameraInfo right_camera_info;
 
         std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>> left_sub;
         std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>> right_sub;

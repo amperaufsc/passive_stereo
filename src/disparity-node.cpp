@@ -3,12 +3,13 @@
 
 #include<string>
 
-DisparityNode::DisparityNode(): Node("node")
+DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::msg::CameraInfo infoR): Node("node")
 {
     std::string left_image_topic = "/left/image_raw";
     std::string right_image_topic = "/right/image_raw";
 
-
+    left_camera_info = infoL;
+    right_camera_info = infoR;
 
     left_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, left_image_topic);
     right_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, right_image_topic);
@@ -34,11 +35,13 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
 
     auto imgmsg = sensor_msgs::msg::Image();
 
-    RCLCPP_INFO(this->get_logger(), "Image received");
+    
 
     cv::Mat imgL = cv_ptrLeft->image;
     cv::Mat imgR = cv_ptrRight->image;
     cv::Mat disp, disparity;
+
+    RectifyImages(imgL, imgR);
 
     cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create(16,9);
     stereo->compute(imgL, imgR, disp);
@@ -47,4 +50,9 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
     cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", disparity).toImageMsg(imgmsg);
     publisher->publish(imgmsg);
     
+}
+void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
+{
+    RCLCPP_INFO(this->get_logger(), "Image received");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"%d", left_camera_info.height);
 }

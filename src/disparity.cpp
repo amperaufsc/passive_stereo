@@ -24,7 +24,8 @@ int main(int argc, char **argv)
     else
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "No camera info provided");
 
-    auto node = std::make_shared<DisparityNode>();
+
+    auto node = std::make_shared<DisparityNode>(left_camera_info, right_camera_info);
 
     rclcpp::spin(node);
 
