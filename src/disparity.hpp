@@ -31,6 +31,10 @@ class DisparityNode : public rclcpp::Node
 
         void GrabStereo(const sensor_msgs::msg::Image::ConstSharedPtr msgRGB, const sensor_msgs::msg::Image::ConstSharedPtr msgD);
         void RectifyImages(cv::Mat imgL, cv::Mat imgR);
+        void CalculateRectificationRemaps();
+
+        cv::Mat left_map1, left_map2;
+        cv::Mat right_map1, right_map2;
 
         cv_bridge::CvImageConstPtr cv_ptrLeft;
         cv_bridge::CvImageConstPtr cv_ptrRight;

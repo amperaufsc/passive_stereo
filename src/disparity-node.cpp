@@ -14,6 +14,8 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
     left_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, left_image_topic);
     right_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, right_image_topic);
 
+    CalculateRectificationRemaps();
+
     syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy>> (approximate_sync_policy(10), *left_sub, *right_sub);
     syncApproximate->registerCallback(std::bind(&DisparityNode::GrabStereo, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -51,10 +53,8 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
     publisher->publish(imgmsg);
     
 }
-void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
+void DisparityNode::CalculateRectificationRemaps()
 {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"%d", left_camera_info.height);
-
     cv::Mat intrinsics_left(3, 3, cv::DataType<double>::type);
     cv::Mat dist_coeffs_left(5, 1, cv::DataType<double>::type);
 
@@ -66,10 +66,10 @@ void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
 
     cv::Mat R1,R2,P1,P2,Q;
 
-    cv::Mat left_map1, left_map2;
-    cv::Mat right_map1, right_map2;
+    left_map1, left_map2;
+    right_map1, right_map2;
 
-    cv::Mat rectImgL, rectImgR;
+    
 
     cv::Size siz;
 
@@ -120,6 +120,11 @@ void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
 
     cv::initInverseRectificationMap(intrinsics_left, dist_coeffs_left, R1, P1,siz, CV_32FC1,left_map1, left_map2);
     cv::initInverseRectificationMap(intrinsics_right, dist_coeffs_right, R2, P2,siz, CV_32FC1,right_map1, right_map2);
+
+}
+void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
+{   
+    cv::Mat rectImgL, rectImgR;
 
     cv::remap(imgL, rectImgL, left_map1, left_map2, cv::INTER_LINEAR);
     cv::remap(imgR, rectImgR, right_map1, right_map2, cv::INTER_LINEAR);
