@@ -64,18 +64,20 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
 
     cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", disparity).toImageMsg(imgmsg);
     disparity_publisher->publish(imgmsg);
+    cv::imshow("disparity", disparity);
+    cv::waitKey(1);
     
 }
 void DisparityNode::UpdateParameters(const std_msgs::msg::Int16MultiArray::ConstSharedPtr params_message)
 {
-    RCLCPP_INFO(this->get_logger(), "Received");
-    stereo->setPreFilterCap(params_message->data[0]); 
-    stereo->setPreFilterSize(params_message->data[1]);
+    RCLCPP_INFO(this->get_logger(), "Received: %d", params_message->data[0]);
+    stereo->setPreFilterCap(params_message->data[0]); //1 - 63
+    stereo->setPreFilterSize(params_message->data[1]); // 5 - 255 impar
     stereo->setPreFilterType(params_message->data[2]); 
     stereo->setTextureThreshold(params_message->data[3]); 
     stereo->setUniquenessRatio(params_message->data[4]); 
-    stereo->setNumDisparities(params_message->data[5]); 
-    stereo->setBlockSize(params_message->data[6]); 
+    stereo->setNumDisparities(params_message->data[5]); // positivo %16 == 0
+    stereo->setBlockSize(params_message->data[6]); // 5- 255 impar
     stereo->setSpeckleRange(params_message->data[7]);
     stereo->setSpeckleWindowSize(params_message->data[8]);
     stereo->setDisp12MaxDiff(params_message->data[9]);
