@@ -24,7 +24,7 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
     syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy>> (approximate_sync_policy(10), *left_sub, *right_sub);
     syncApproximate->registerCallback(std::bind(&DisparityNode::GrabStereo, this, std::placeholders::_1, std::placeholders::_2));
 
-    params_sub = create_subscription<std_msgs::msg::Float32MultiArray>(params_topic, 10, std::bind(&DisparityNode::UpdateParameters, this, _1));
+    params_sub = create_subscription<std_msgs::msg::Int16MultiArray>(params_topic, 10, std::bind(&DisparityNode::UpdateParameters, this, _1));
 
 
     disparity_publisher = this->create_publisher<sensor_msgs::msg::Image>("disparity_image",10);
@@ -66,9 +66,20 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
     disparity_publisher->publish(imgmsg);
     
 }
-void DisparityNode::UpdateParameters(const std_msgs::msg::Float32MultiArray::ConstSharedPtr params_message)
+void DisparityNode::UpdateParameters(const std_msgs::msg::Int16MultiArray::ConstSharedPtr params_message)
 {
-
+    RCLCPP_INFO(this->get_logger(), "Received");
+    stereo->setPreFilterCap(params_message->data[0]); 
+    stereo->setPreFilterSize(params_message->data[1]);
+    stereo->setPreFilterType(params_message->data[2]); 
+    stereo->setTextureThreshold(params_message->data[3]); 
+    stereo->setUniquenessRatio(params_message->data[4]); 
+    stereo->setNumDisparities(params_message->data[5]); 
+    stereo->setBlockSize(params_message->data[6]); 
+    stereo->setSpeckleRange(params_message->data[7]);
+    stereo->setSpeckleWindowSize(params_message->data[8]);
+    stereo->setDisp12MaxDiff(params_message->data[9]);
+    stereo->setMinDisparity(params_message->data[10]);
 }
 
 void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
