@@ -93,11 +93,10 @@ void DisparityNode::CalculateRectificationRemaps()
     intrinsics_left.at<double>(1,2) = left_camera_info.k[5]; //cy
     intrinsics_left.at<double>(2,2) = 1;
     
-    dist_coeffs_left.at<double>(0) = left_camera_info.d[0];
-    dist_coeffs_left.at<double>(1) = left_camera_info.d[1];
-    dist_coeffs_left.at<double>(2) = left_camera_info.d[2];
-    dist_coeffs_left.at<double>(3) = left_camera_info.d[3];
-    dist_coeffs_left.at<double>(4) = left_camera_info.d[4];
+    dist_coeffs_left.at<double>(0) = left_camera_info.d[0]; //k1
+    dist_coeffs_left.at<double>(1) = left_camera_info.d[1]; //k2
+    dist_coeffs_left.at<double>(2) = left_camera_info.d[3]; //p1
+    dist_coeffs_left.at<double>(3) = left_camera_info.d[4]; //p2
 
     intrinsics_right.at<double>(0,0) = right_camera_info.k[0];
     intrinsics_right.at<double>(0,2) = right_camera_info.k[2];
@@ -130,6 +129,7 @@ void DisparityNode::CalculateRectificationRemaps()
 
 
     cv::stereoRectify(intrinsics_left, dist_coeffs_left, intrinsics_right, dist_coeffs_right, siz, rotation, translation, R1, R2, P1, P2, Q);
+
     cv::initUndistortRectifyMap(intrinsics_left, dist_coeffs_left, R1, P1,siz, CV_32FC1,left_map1, left_map2);
     cv::initUndistortRectifyMap(intrinsics_right, dist_coeffs_right, R2, P2,siz, CV_32FC1,right_map1, right_map2);
 
