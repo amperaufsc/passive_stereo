@@ -97,7 +97,7 @@ void DisparityNode::CalculateRectificationRemaps()
     dist_coeffs_left.at<double>(1) = left_camera_info.d[1]; //k2
     dist_coeffs_left.at<double>(2) = left_camera_info.d[3]; //p1
     dist_coeffs_left.at<double>(3) = left_camera_info.d[4]; //p2
-    dist_coeffs_left.at<double>(4) = left_camera_info.d[2]; //p2
+    dist_coeffs_left.at<double>(4) = left_camera_info.d[2]; //k3
 
     intrinsics_right.at<double>(0,0) = right_camera_info.k[0];
     intrinsics_right.at<double>(0,2) = right_camera_info.k[2];
@@ -107,9 +107,9 @@ void DisparityNode::CalculateRectificationRemaps()
     
     dist_coeffs_right.at<double>(0) = right_camera_info.d[0];
     dist_coeffs_right.at<double>(1) = right_camera_info.d[1];
-    dist_coeffs_right.at<double>(2) = right_camera_info.d[2];
-    dist_coeffs_right.at<double>(3) = right_camera_info.d[3];
-    dist_coeffs_right.at<double>(4) = right_camera_info.d[4];
+    dist_coeffs_right.at<double>(2) = right_camera_info.d[3];
+    dist_coeffs_right.at<double>(3) = right_camera_info.d[4];
+    dist_coeffs_right.at<double>(4) = right_camera_info.d[2];
 
     siz.width = left_camera_info.width;
     siz.height = left_camera_info.height;
