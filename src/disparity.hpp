@@ -36,6 +36,8 @@ class DisparityNode : public rclcpp::Node
         cv::Mat left_map1, left_map2;
         cv::Mat right_map1, right_map2;
 
+        cv::Mat rectImgL, rectImgR;
+
         cv_bridge::CvImageConstPtr cv_ptrLeft;
         cv_bridge::CvImageConstPtr cv_ptrRight;
 
@@ -47,5 +49,7 @@ class DisparityNode : public rclcpp::Node
 
         std::shared_ptr<message_filters::Synchronizer<approximate_sync_policy>> syncApproximate;
 
-        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher;
+        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr disparity_publisher;
+        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rect_left_publisher;
+        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rect_right_publisher;
 };
