@@ -3,10 +3,14 @@
 
 #include<string>
 
+using std::placeholders::_1;
+
+
 DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::msg::CameraInfo infoR): Node("node")
 {
     std::string left_image_topic = "/left/image_raw";
     std::string right_image_topic = "/right/image_raw";
+    std::string params_topic = "/params";
 
     left_camera_info = infoL;
     right_camera_info = infoR;
@@ -14,15 +18,21 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
     left_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, left_image_topic);
     right_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, right_image_topic);
 
+
     CalculateRectificationRemaps();
 
     syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy>> (approximate_sync_policy(10), *left_sub, *right_sub);
     syncApproximate->registerCallback(std::bind(&DisparityNode::GrabStereo, this, std::placeholders::_1, std::placeholders::_2));
 
+    params_sub = create_subscription<std_msgs::msg::Float32MultiArray>(params_topic, 10, std::bind(&DisparityNode::UpdateParameters, this, _1));
+
+
     disparity_publisher = this->create_publisher<sensor_msgs::msg::Image>("disparity_image",10);
 
     rect_left_publisher = this->create_publisher<sensor_msgs::msg::Image>("rect_left_image",10);
     rect_right_publisher = this->create_publisher<sensor_msgs::msg::Image>("rect_right_image",10);
+
+    stereo = cv::StereoBM::create(16,9);
 
 }
 void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const ImageMsg::ConstSharedPtr msgRight)
@@ -48,13 +58,17 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
 
     RectifyImages(imgL, imgR);
 
-    cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create(16,9);
+   
     stereo->compute(rectImgL, rectImgR, disp);
     disp.convertTo(disparity,CV_32F, 1.0);
 
     cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", disparity).toImageMsg(imgmsg);
     disparity_publisher->publish(imgmsg);
     
+}
+void DisparityNode::UpdateParameters(const std_msgs::msg::Float32MultiArray::ConstSharedPtr params_message)
+{
+
 }
 
 void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
