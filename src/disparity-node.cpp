@@ -5,6 +5,68 @@
 
 using std::placeholders::_1;
 
+int numDisparities = 2;
+int blockSize = 9;
+int preFilterType = 1;
+int preFilterSize = 25;
+int preFilterCap = 59;
+int minDisparity = 0;
+int textureThreshold = 0;
+int uniquenessRatio = 31;
+int speckleRange = 30;
+int speckleWindowSize = 16;
+int disp12MaxDiff = -1;
+
+cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create();
+
+static void on_trackbar1(int, void *) {
+        stereo->setNumDisparities(numDisparities * 16);
+        numDisparities = numDisparities * 16;
+}
+static void on_trackbar2(int, void *) {
+        stereo->setBlockSize(blockSize * 2 + 5);
+        blockSize = blockSize * 2 + 5;
+}
+
+static void on_trackbar3(int, void *) {
+    stereo->setPreFilterType(preFilterType);
+}
+
+static void on_trackbar4(int, void *) {
+    stereo->setPreFilterSize(preFilterSize * 2 + 5);
+    preFilterSize = preFilterSize * 2 + 5;
+}
+
+static void on_trackbar5(int, void *) {
+    stereo->setPreFilterCap(preFilterCap);
+}
+
+static void on_trackbar6(int, void *) {
+    stereo->setTextureThreshold(textureThreshold);
+}
+
+
+static void on_trackbar7(int, void *) {
+    stereo->setUniquenessRatio(uniquenessRatio);
+}
+
+static void on_trackbar8(int, void *) {
+    stereo->setSpeckleRange(speckleRange);
+}
+
+static void on_trackbar9(int, void *) {
+    stereo->setSpeckleWindowSize(speckleWindowSize * 2);
+    speckleWindowSize = speckleWindowSize * 2;
+}
+
+static void on_trackbar10(int, void *) {
+    stereo->setDisp12MaxDiff(disp12MaxDiff);
+}
+
+static void on_trackbar11(int, void *) {
+    stereo->setMinDisparity(minDisparity);
+}
+
 
 DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::msg::CameraInfo infoR): Node("node")
 {
@@ -20,6 +82,7 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
 
 
     CalculateRectificationRemaps();
+    create_trackbars();
 
     syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy>> (approximate_sync_policy(10), *left_sub, *right_sub);
     syncApproximate->registerCallback(std::bind(&DisparityNode::GrabStereo, this, std::placeholders::_1, std::placeholders::_2));
@@ -31,10 +94,8 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
 
     rect_left_publisher = this->create_publisher<sensor_msgs::msg::Image>("rect_left_image",10);
     rect_right_publisher = this->create_publisher<sensor_msgs::msg::Image>("rect_right_image",10);
-
-    stereo = cv::StereoBM::create(16,9);
-
 }
+
 void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const ImageMsg::ConstSharedPtr msgRight)
 {
     try
@@ -62,12 +123,32 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
     stereo->compute(rectImgL, rectImgR, disp);
     disp.convertTo(disparity,CV_32F, 1.0);
 
+    disparity = (disparity/16.0f - (float)minDisparity)/((float)numDisparities);
+
     cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", disparity).toImageMsg(imgmsg);
     disparity_publisher->publish(imgmsg);
-    cv::imshow("disparity", disparity);
+    cv::imshow("Disparity", disparity);
     cv::waitKey(1);
     
 }
+
+void DisparityNode::create_trackbars() {
+    static const std::string OPENCV_WINDOW_D = "Image D window";
+    cv::namedWindow(OPENCV_WINDOW_D,cv::WINDOW_NORMAL);
+    cv::resizeWindow(OPENCV_WINDOW_D, 800, 600);
+    cv::createTrackbar("numDisparities", OPENCV_WINDOW_D, &numDisparities, 18, on_trackbar1);
+    cv::createTrackbar("blockSize", OPENCV_WINDOW_D, &blockSize, 50, on_trackbar2);
+    cv::createTrackbar("preFilterType", OPENCV_WINDOW_D, &preFilterType, 1, on_trackbar3);
+    cv::createTrackbar("preFilterSize", OPENCV_WINDOW_D, &preFilterSize, 25, on_trackbar4);
+    cv::createTrackbar("preFilterCap", OPENCV_WINDOW_D, &preFilterCap, 62, on_trackbar5);
+    cv::createTrackbar("textureThreshold", OPENCV_WINDOW_D, &textureThreshold, 100, on_trackbar6);
+    cv::createTrackbar("uniquenessRatio", OPENCV_WINDOW_D, &uniquenessRatio, 100, on_trackbar7);
+    cv::createTrackbar("speckleRange", OPENCV_WINDOW_D, &speckleRange, 100, on_trackbar8);
+    cv::createTrackbar("speckleWindowSize", OPENCV_WINDOW_D, &speckleWindowSize, 25, on_trackbar9);
+    cv::createTrackbar("disp12MaxDiff", OPENCV_WINDOW_D, &disp12MaxDiff, 25, on_trackbar10);
+    cv::createTrackbar("minDisparity", OPENCV_WINDOW_D, &minDisparity, 25, on_trackbar11);
+}
+
 void DisparityNode::UpdateParameters(const std_msgs::msg::Int16MultiArray::ConstSharedPtr params_message)
 {
     RCLCPP_INFO(this->get_logger(), "Received: %d", params_message->data[0]);
@@ -82,12 +163,15 @@ void DisparityNode::UpdateParameters(const std_msgs::msg::Int16MultiArray::Const
     stereo->setSpeckleWindowSize(params_message->data[8]);
     stereo->setDisp12MaxDiff(params_message->data[9]);
     stereo->setMinDisparity(params_message->data[10]);
+
+    minDisparity = params_message->data[10];
+    numDisparities = params_message->data[5];
 }
 
 void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
 {   
-    cv::remap(imgL, rectImgL, left_map1, left_map2, cv::INTER_LINEAR);
-    cv::remap(imgR, rectImgR, right_map1, right_map2, cv::INTER_LINEAR);
+    cv::remap(imgL, rectImgL, left_map1, left_map2, cv::INTER_LANCZOS4);
+    cv::remap(imgR, rectImgR, right_map1, right_map2, cv::INTER_LANCZOS4);
 
     auto leftimgmsg = sensor_msgs::msg::Image();
     auto rightimgmsg = sensor_msgs::msg::Image();

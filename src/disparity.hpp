@@ -22,10 +22,16 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/core/utility.hpp"
 
+// initialize values for StereoSGBM parameters
+
+
+
+
 class DisparityNode : public rclcpp::Node
 {
     public:
         DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::msg::CameraInfo infoR);
+        void create_trackbars();
 
     private:
         using ImageMsg = sensor_msgs::msg::Image;
@@ -35,6 +41,7 @@ class DisparityNode : public rclcpp::Node
         void RectifyImages(cv::Mat imgL, cv::Mat imgR);
         void CalculateRectificationRemaps();
         void UpdateParameters(const std_msgs::msg::Int16MultiArray::ConstSharedPtr params_message);
+
 
         cv::Mat left_map1, left_map2;
         cv::Mat right_map1, right_map2;
@@ -57,6 +64,4 @@ class DisparityNode : public rclcpp::Node
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr disparity_publisher;
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rect_left_publisher;
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rect_right_publisher;
-
-        cv::Ptr<cv::StereoBM> stereo;
 };
