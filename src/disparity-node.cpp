@@ -5,68 +5,88 @@
 
 using std::placeholders::_1;
 
-int numDisparities = 2;
-int blockSize = 9;
-int preFilterType = 1;
+int numDisparities = 12*16;
+int blockSize = 75;
+int preFilterType = 0;
 int preFilterSize = 25;
-int preFilterCap = 59;
-int minDisparity = 0;
-int textureThreshold = 0;
-int uniquenessRatio = 31;
-int speckleRange = 30;
-int speckleWindowSize = 16;
-int disp12MaxDiff = -1;
+int preFilterCap = 15;
+int minDisparity = 1;
+int textureThreshold = 61;
+int uniquenessRatio = 0;
+int speckleRange = 50;
+int speckleWindowSize = 38;
+int disp12MaxDiff = 20;
+float lambda = 8000;
+float sigma = 1.5;
 
 cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create();
+cv::Ptr<cv::ximgproc::DisparityWLSFilter> wls_filter = cv::ximgproc::createDisparityWLSFilter(stereo);
+cv::Ptr<cv::StereoMatcher> right_matcher = cv::ximgproc::createRightMatcher(stereo);
+
 
 static void on_trackbar1(int, void *) {
-        stereo->setNumDisparities(numDisparities * 16);
-        numDisparities = numDisparities * 16;
+    stereo->setNumDisparities(numDisparities * 16);
+    right_matcher->setNumDisparities(numDisparities * 16);
+    numDisparities = numDisparities * 16;
 }
 static void on_trackbar2(int, void *) {
-        stereo->setBlockSize(blockSize * 2 + 5);
-        blockSize = blockSize * 2 + 5;
+    stereo->setBlockSize(blockSize * 2 + 5);
+    right_matcher->setBlockSize(blockSize * 2 + 5);
+    blockSize = blockSize * 2 + 5;
 }
 
 static void on_trackbar3(int, void *) {
     stereo->setPreFilterType(preFilterType);
+    //right_matcher->setPreFilterType(preFilterType);
 }
 
 static void on_trackbar4(int, void *) {
     stereo->setPreFilterSize(preFilterSize * 2 + 5);
+    //right_matcher->setPreFilterSize(preFilterSize * 2 + 5);
     preFilterSize = preFilterSize * 2 + 5;
 }
 
 static void on_trackbar5(int, void *) {
     stereo->setPreFilterCap(preFilterCap);
+    //right_matcher->setPreFilterCap(preFilterCap);
 }
 
 static void on_trackbar6(int, void *) {
     stereo->setTextureThreshold(textureThreshold);
+    //right_matcher->setTextureThreshold(textureThreshold);
 }
 
 
 static void on_trackbar7(int, void *) {
     stereo->setUniquenessRatio(uniquenessRatio);
+    //right_matcher->setUniquenessRatio(uniquenessRatio);
 }
 
 static void on_trackbar8(int, void *) {
     stereo->setSpeckleRange(speckleRange);
+    right_matcher->setSpeckleRange(speckleRange);
 }
 
 static void on_trackbar9(int, void *) {
     stereo->setSpeckleWindowSize(speckleWindowSize * 2);
-    speckleWindowSize = speckleWindowSize * 2;
+    right_matcher->setSpeckleWindowSize(speckleWindowSize * 2);
 }
 
 static void on_trackbar10(int, void *) {
     stereo->setDisp12MaxDiff(disp12MaxDiff);
+    right_matcher->setDisp12MaxDiff(disp12MaxDiff);
 }
 
 static void on_trackbar11(int, void *) {
     stereo->setMinDisparity(minDisparity);
+    right_matcher->setMinDisparity(minDisparity);
 }
-
+static void on_trackbar12(int, void *) {
+    wls_filter->setLambda(lambda);
+}
+static void on_trackbar13(int, void *) {
+    wls_filter->setSigmaColor(sigma);
+}
 
 DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::msg::CameraInfo infoR): Node("node")
 {
@@ -100,8 +120,8 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
 {
     try
     {
-         cv_ptrLeft = cv_bridge::toCvShare(msgLeft); 
-         cv_ptrRight = cv_bridge::toCvShare(msgRight);
+         cv_ptrLeft = cv_bridge::toCvShare(msgLeft, "mono8"); 
+         cv_ptrRight = cv_bridge::toCvShare(msgRight, "mono8");
     }
     catch (cv_bridge::Exception& e)
     {
@@ -115,19 +135,32 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
 
     cv::Mat imgL = cv_ptrLeft->image;
     cv::Mat imgR = cv_ptrRight->image;
-    cv::Mat disp, disparity;
+    cv::Mat disp, disparity, raw_right_disparity_map, right_disparity;
+    cv::Mat filtered_disparity_map, filtered_disparity_map_8u;
 
     RectifyImages(imgL, imgR);
 
    
     stereo->compute(rectImgL, rectImgR, disp);
-    disp.convertTo(disparity,CV_32F, 1.0);
+    disp.convertTo(disparity,CV_32FC1, 1);
 
-    disparity = (disparity/16.0f - (float)minDisparity)/((float)numDisparities);
+    
+    right_matcher->compute( rectImgR,rectImgL, raw_right_disparity_map);
+
+
+    wls_filter->filter(disp,
+                        rectImgL,
+                        filtered_disparity_map,
+                        raw_right_disparity_map);
+    raw_right_disparity_map.convertTo(right_disparity, CV_32FC1, 1);
+    filtered_disparity_map.convertTo(filtered_disparity_map_8u, CV_32FC1,1);
 
     cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", disparity).toImageMsg(imgmsg);
     disparity_publisher->publish(imgmsg);
-    cv::imshow("Disparity", disparity);
+    cv::imshow("Left", disparity);
+    cv::imshow("Right", right_disparity);
+    cv::imshow("Filtered", filtered_disparity_map_8u);
+    
     cv::waitKey(1);
     
 }
