@@ -1,6 +1,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/wait_for_message.hpp>
 
+#include <std_msgs/msg/int16_multi_array.hpp>
+
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 
@@ -20,10 +22,16 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/core/utility.hpp"
 
+// initialize values for StereoSGBM parameters
+
+
+
+
 class DisparityNode : public rclcpp::Node
 {
     public:
         DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::msg::CameraInfo infoR);
+        void create_trackbars();
 
     private:
         using ImageMsg = sensor_msgs::msg::Image;
@@ -32,6 +40,8 @@ class DisparityNode : public rclcpp::Node
         void GrabStereo(const sensor_msgs::msg::Image::ConstSharedPtr msgRGB, const sensor_msgs::msg::Image::ConstSharedPtr msgD);
         void RectifyImages(cv::Mat imgL, cv::Mat imgR);
         void CalculateRectificationRemaps();
+        void UpdateParameters(const std_msgs::msg::Int16MultiArray::ConstSharedPtr params_message);
+
 
         cv::Mat left_map1, left_map2;
         cv::Mat right_map1, right_map2;
@@ -46,6 +56,8 @@ class DisparityNode : public rclcpp::Node
 
         std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>> left_sub;
         std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>> right_sub;
+
+        std::shared_ptr<rclcpp::Subscription<std_msgs::msg::Int16MultiArray>> params_sub;
 
         std::shared_ptr<message_filters::Synchronizer<approximate_sync_policy>> syncApproximate;
 
