@@ -10,7 +10,7 @@ def generate_launch_description():
         LaunchArg( 'right_image', default_value=['/sm2_right/image_raw']),
         LaunchArg( 'left_info', default_value=['/sm2_left/camera_info']),
         LaunchArg( 'right_info', default_value=['/sm2_right/camera_info']),
-        LaunchArg( 'stereo_params', default_value=['/sm2_disparity/stereo_params']),
+        LaunchArg( 'stereo_params', default_value=['/sm2/disparity/stereo_params']),
 
        
         Node(

@@ -71,13 +71,13 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
     cv::Mat imgL = cv_ptrLeft->image;
     cv::Mat imgR = cv_ptrRight->image;
     cv::Mat disp, disparity, raw_right_disparity_map, right_disparity;
-    cv::Mat filtered_disparity_map, filtered_disparity_map_8u;
+    cv::Mat filtered_disparity_map, filtered_disparity_map_16u;
 
     RectifyImages(imgL, imgR);
 
    
     stereo->compute(rectImgL, rectImgR, disp);
-    disp.convertTo(disparity,CV_32FC1, 1);
+    disp.convertTo(disparity,CV_8UC1, 1);
 
     
     right_matcher->compute( rectImgR,rectImgL, raw_right_disparity_map);
@@ -88,10 +88,11 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
                         filtered_disparity_map,
                         raw_right_disparity_map);
     raw_right_disparity_map.convertTo(right_disparity, CV_32FC1, 1);
-    filtered_disparity_map.convertTo(filtered_disparity_map_8u, CV_16UC1,1);
+    filtered_disparity_map.convertTo(filtered_disparity_map_16u, CV_8UC1,0.4);
 
-    cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", filtered_disparity_map_8u).toImageMsg(imgmsg);
+    cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", filtered_disparity_map_16u).toImageMsg(imgmsg);
     disparity_publisher->publish(imgmsg);
+
     
 }
 
@@ -100,15 +101,21 @@ void DisparityNode::UpdateParameters(const std_msgs::msg::Int16MultiArray::Const
     RCLCPP_INFO(this->get_logger(), "Received: %d", params_message->data[0]);
     stereo->setPreFilterCap(params_message->data[0]); //1 - 63
     stereo->setPreFilterSize(params_message->data[1]); // 5 - 255 impar
-    stereo->setPreFilterType(params_message->data[2]); 
+    stereo->setPreFilterType(params_message->data[2]);
+
     stereo->setTextureThreshold(params_message->data[3]); 
-    stereo->setUniquenessRatio(params_message->data[4]); 
+    stereo->setUniquenessRatio(params_message->data[4]);
+
     stereo->setNumDisparities(params_message->data[5]); // positivo %16 == 0
     stereo->setBlockSize(params_message->data[6]); // 5- 255 impar
     stereo->setSpeckleRange(params_message->data[7]);
+
     stereo->setSpeckleWindowSize(params_message->data[8]);
     stereo->setDisp12MaxDiff(params_message->data[9]);
     stereo->setMinDisparity(params_message->data[10]);
+
+    wls_filter->setLambda(params_message->data[11]);
+    wls_filter->setSigmaColor(params_message->data[12]);
 
     minDisparity = params_message->data[10];
     numDisparities = params_message->data[5];
