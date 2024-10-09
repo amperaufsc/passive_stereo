@@ -21,13 +21,19 @@
 class TriangulationNode : public rclcpp::Node
 {
     public:
-        TriangulationNode(sensor_msgs::msg::CameraInfo infoL);
+        TriangulationNode(sensor_msgs::msg::CameraInfo camera_info);
 
     private:
+        using ImageMsg = sensor_msgs::msg::Image;
+
+        void GrabImage(const ImageMsg::ConstSharedPtr disparity_image_msg);
+
         float baseline_x_fx_, principal_x_, principal_y_, fx_, fy_;
 
-        sensor_msgs::msg::CameraInfo left_camera_info;
-        std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>> disparity_sub;
+        cv_bridge::CvImageConstPtr cv_ptr_image;
 
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_publisher;
+        sensor_msgs::msg::CameraInfo camera_info_;
+        std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::Image>> disparity_sub_;
+
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_publisher_;
 };

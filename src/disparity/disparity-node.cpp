@@ -88,7 +88,7 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
                         filtered_disparity_map,
                         raw_right_disparity_map);
     raw_right_disparity_map.convertTo(right_disparity, CV_32FC1, 1);
-    filtered_disparity_map.convertTo(filtered_disparity_map_16u, CV_8UC1, 0.3);
+    filtered_disparity_map.convertTo(filtered_disparity_map_16u, CV_8UC1, 0.2);
 
     cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", filtered_disparity_map_16u).toImageMsg(imgmsg);
     disparity_publisher->publish(imgmsg);
@@ -129,11 +129,11 @@ void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
     auto leftimgmsg = sensor_msgs::msg::Image();
     auto rightimgmsg = sensor_msgs::msg::Image();
 
-    cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgL).toImageMsg(leftimgmsg);
-    rect_left_publisher->publish(leftimgmsg);
+    /*cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgL).toImageMsg(leftimgmsg);
+    //rect_left_publisher->publish(leftimgmsg);
 
     cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgR).toImageMsg(rightimgmsg);
-    rect_right_publisher->publish(rightimgmsg);
+    //rect_right_publisher->publish(rightimgmsg);*/
 }
 
 void DisparityNode::CalculateRectificationRemaps()
