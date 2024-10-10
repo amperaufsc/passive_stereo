@@ -14,6 +14,8 @@ TriangulationNode::TriangulationNode(sensor_msgs::msg::CameraInfo camera_info): 
     fx_ = camera_info.k[0];
     fy_ = camera_info.k[4];
 
+    RCLCPP_INFO(this->get_logger(), "Baseline: %f", baseline_x_fx_);
+
     pointcloud_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 }
 void TriangulationNode::GrabImage(const ImageMsg::ConstSharedPtr disparity_image_msg)
@@ -36,7 +38,7 @@ void TriangulationNode::GrabImage(const ImageMsg::ConstSharedPtr disparity_image
     pointcloudmsg.header.frame_id = "map";
     pointcloudmsg.height = 1;
     pointcloudmsg.width = width * height;
-    pointcloudmsg.is_dense = true;
+    pointcloudmsg.is_dense = false;
     pointcloudmsg.fields.resize(3);
 
     // Populate the fields
@@ -60,18 +62,21 @@ void TriangulationNode::GrabImage(const ImageMsg::ConstSharedPtr disparity_image
     pointcloudmsg.is_bigendian = true;
     pointcloudmsg.data.resize(pointcloudmsg.point_step * width * height);
 
-    for (int i = 0; i < width; i++)
+    for (int i = 0; i < height; i++)
     {
-        for(int j = 0; j < height; j++){
+        for(int j = 0; j < width; j++){
             uint16_t disparity = cv_ptr_image->image.at<uint16_t>(i,j);
+            if(disparity >= 50){
+                float z = -baseline_x_fx_ * fx_/ disparity;
+                float x = (i - principal_x_) * (z) / fx_;
+                float y = (j - principal_y_) * (z) / fy_;
 
-            float z = baseline_x_fx_ / disparity;
-            float x = (i - principal_x_) * (z) / fx_;
-            float y = (j - principal_y_) * (z) / fy_;
+                //RCLCPP_INFO(this->get_logger(), "x: %f, y: %f,z: %f", x,y,z);
 
-            memcpy(&pointcloudmsg.data[(i*j + j)*12], &x, 4);
-            memcpy(&pointcloudmsg.data[(i*j + j)*12 + 4], &y, 4);
-            memcpy(&pointcloudmsg.data[(i*j + j)*12 + 8], &z, 4);
+                memcpy(&pointcloudmsg.data[(i*width + j)*12], &x, 4);
+                memcpy(&pointcloudmsg.data[(i*width + j)*12 + 4], &y, 4);
+                memcpy(&pointcloudmsg.data[(i*width + j)*12 + 8], &z, 4);
+            }
         }
     }
     pointcloud_publisher_->publish(pointcloudmsg);

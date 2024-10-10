@@ -89,8 +89,8 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
                         raw_right_disparity_map);
     raw_right_disparity_map.convertTo(right_disparity, CV_32FC1, 1);
     filtered_disparity_map.convertTo(filtered_disparity_map_16u, CV_8UC1, 0.2);
-
-    cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", filtered_disparity_map_16u).toImageMsg(imgmsg);
+    
+    cv_bridge::CvImage(std_msgs::msg::Header(), "mono16", filtered_disparity_map).toImageMsg(imgmsg);
     disparity_publisher->publish(imgmsg);
 
     
