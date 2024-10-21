@@ -24,7 +24,7 @@ class TriangulationNode : public rclcpp::Node
         TriangulationNode(sensor_msgs::msg::CameraInfo camera_info);
 
     private:
-        using ImageMsg = sensor_msgs::msg::Image;
+        using ImageMsg = stereo_msgs::msg::DisparityImage;
 
         void GrabImage(const ImageMsg::ConstSharedPtr disparity_image_msg);
 
@@ -33,7 +33,7 @@ class TriangulationNode : public rclcpp::Node
         cv_bridge::CvImageConstPtr cv_ptr_image;
 
         sensor_msgs::msg::CameraInfo camera_info_;
-        std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::Image>> disparity_sub_;
+        std::shared_ptr<rclcpp::Subscription<stereo_msgs::msg::DisparityImage>> disparity_sub_;
 
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_publisher_;
 };

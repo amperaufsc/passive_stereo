@@ -6,7 +6,7 @@ TriangulationNode::TriangulationNode(sensor_msgs::msg::CameraInfo camera_info): 
 {   
     std::string disparity_image_topic = "/disparity/disparity_image";
 
-    disparity_sub_ = this->create_subscription<sensor_msgs::msg::Image>(disparity_image_topic, 10, std::bind(&TriangulationNode::GrabImage, this, _1));
+    disparity_sub_ = this->create_subscription<stereo_msgs::msg::DisparityImage>(disparity_image_topic, 10, std::bind(&TriangulationNode::GrabImage, this, _1));
 
     baseline_x_fx_ = camera_info.p[3];
     principal_x_ = camera_info.k[2];
@@ -18,13 +18,13 @@ TriangulationNode::TriangulationNode(sensor_msgs::msg::CameraInfo camera_info): 
 
     pointcloud_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("pointcloud", 10);
 }
-void TriangulationNode::GrabImage(const ImageMsg::ConstSharedPtr disparity_image_msg)
+void TriangulationNode::GrabImage(const stereo_msgs::msg::DisparityImage::ConstSharedPtr disparity_image_msg)
 {
     auto pointcloudmsg = sensor_msgs::msg::PointCloud2();
     
     try
     {
-         cv_ptr_image = cv_bridge::toCvShare(disparity_image_msg, "mono16"); 
+         cv_ptr_image = cv_bridge::toCvShare(disparity_image_msg->image, "32FC1"); 
     }
     catch (cv_bridge::Exception& e)
     {

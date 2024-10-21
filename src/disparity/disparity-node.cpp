@@ -45,7 +45,7 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
     params_sub = create_subscription<std_msgs::msg::Int16MultiArray>(params_topic, 10, std::bind(&DisparityNode::UpdateParameters, this, _1));
 
 
-    disparity_publisher = this->create_publisher<sensor_msgs::msg::Image>("disparity_image",10);
+    disparity_publisher = this->create_publisher<stereo_msgs::msg::DisparityImage>("disparity_image",10);
 
     rect_left_publisher = this->create_publisher<sensor_msgs::msg::Image>("rect_left_image",10);
     rect_right_publisher = this->create_publisher<sensor_msgs::msg::Image>("rect_right_image",10);
@@ -65,6 +65,7 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
     }
 
     auto imgmsg = sensor_msgs::msg::Image();
+    auto dispmsg = stereo_msgs::msg::DisparityImage();
 
     
 
@@ -77,7 +78,7 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
 
    
     stereo->compute(rectImgL, rectImgR, disp);
-    disp.convertTo(disparity,CV_8UC1, 1);
+    disp.convertTo(disparity,CV_32FC1);
 
     
     right_matcher->compute( rectImgR,rectImgL, raw_right_disparity_map);
@@ -87,11 +88,20 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
                         rectImgL,
                         filtered_disparity_map,
                         raw_right_disparity_map);
+                        
     raw_right_disparity_map.convertTo(right_disparity, CV_32FC1, 1);
-    filtered_disparity_map.convertTo(filtered_disparity_map_16u, CV_8UC1, 0.2);
+    filtered_disparity_map.convertTo(filtered_disparity_map_16u, CV_32FC1);
     
-    cv_bridge::CvImage(std_msgs::msg::Header(), "mono16", filtered_disparity_map).toImageMsg(imgmsg);
-    disparity_publisher->publish(imgmsg);
+    cv_bridge::CvImage(std_msgs::msg::Header(), "32FC1", disparity).toImageMsg(imgmsg);
+
+    dispmsg.header = std_msgs::msg::Header();
+    dispmsg.image = imgmsg;
+    dispmsg.min_disparity = 0;
+    dispmsg.max_disparity = 1000;
+    dispmsg.f = focal_length;
+    dispmsg.t = baseline;
+    dispmsg.delta_d = 1;
+    disparity_publisher->publish(dispmsg);
 
     
 }
@@ -129,11 +139,11 @@ void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR)
     auto leftimgmsg = sensor_msgs::msg::Image();
     auto rightimgmsg = sensor_msgs::msg::Image();
 
-    /*cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgL).toImageMsg(leftimgmsg);
-    //rect_left_publisher->publish(leftimgmsg);
+    cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgL).toImageMsg(leftimgmsg);
+    rect_left_publisher->publish(leftimgmsg);
 
     cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgR).toImageMsg(rightimgmsg);
-    //rect_right_publisher->publish(rightimgmsg);*/
+    rect_right_publisher->publish(rightimgmsg);
 }
 
 void DisparityNode::CalculateRectificationRemaps()
@@ -150,6 +160,8 @@ void DisparityNode::CalculateRectificationRemaps()
     cv::Mat R1,R2,P1,P2,Q;
 
     cv::Size siz;
+
+    focal_length = left_camera_info.k[0];
 
     intrinsics_left.at<double>(0,0) = left_camera_info.k[0]; //fx
     intrinsics_left.at<double>(0,2) = left_camera_info.k[2]; //cx
@@ -187,6 +199,8 @@ void DisparityNode::CalculateRectificationRemaps()
     rotation.at<double>(2, 0) = left_camera_info.r[6];
     rotation.at<double>(2, 1) = left_camera_info.r[7];
     rotation.at<double>(2, 2) = left_camera_info.r[8];
+
+    baseline = left_camera_info.p[3];
 
     translation.at<double>(0) = left_camera_info.p[3];
     translation.at<double>(1) = left_camera_info.p[7];

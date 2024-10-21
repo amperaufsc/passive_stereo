@@ -52,6 +52,8 @@ class DisparityNode : public rclcpp::Node
         cv_bridge::CvImageConstPtr cv_ptrLeft;
         cv_bridge::CvImageConstPtr cv_ptrRight;
 
+        float focal_length, baseline;
+
         sensor_msgs::msg::CameraInfo left_camera_info;
         sensor_msgs::msg::CameraInfo right_camera_info;
 
@@ -62,7 +64,7 @@ class DisparityNode : public rclcpp::Node
 
         std::shared_ptr<message_filters::Synchronizer<approximate_sync_policy>> syncApproximate;
 
-        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr disparity_publisher;
+        rclcpp::Publisher<stereo_msgs::msg::DisparityImage>::SharedPtr disparity_publisher;
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rect_left_publisher;
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rect_right_publisher;
 };
