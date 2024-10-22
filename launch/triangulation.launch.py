@@ -6,10 +6,10 @@ from launch.substitutions import LaunchConfiguration as LaunchConfig
 def generate_launch_description():
     
     return LaunchDescription([
-        LaunchArg( 'left_image', default_value=['/sm2_left/image_raw']),
-        LaunchArg( 'right_image', default_value=['/sm2_right/image_raw']),
-        LaunchArg( 'left_info', default_value=['/sm2_left/camera_info']),
-        LaunchArg( 'right_info', default_value=['/sm2_right/camera_info']),
+        LaunchArg( 'left_image', default_value=['/stereo_left']),
+        LaunchArg( 'right_image', default_value=['/stereo_right']),
+        LaunchArg( 'left_info', default_value=['/stereo_left/camera_info']),
+        LaunchArg( 'right_info', default_value=['/stereo_right/camera_info']),
         LaunchArg( 'stereo_params', default_value=['/sm2/disparity/stereo_params']),
         LaunchArg('disparity', default_value=['/sm2/disparity/disparity_image']),
 
@@ -29,7 +29,7 @@ def generate_launch_description():
         ),
         Node(
             package='disparity',
-            namespace='/sm2/traingulation',
+            namespace='/sm2/triangulation',
             executable='triangulation',
             name='triangulation',
             remappings=[

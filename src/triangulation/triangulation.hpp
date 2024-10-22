@@ -30,7 +30,7 @@ class TriangulationNode : public rclcpp::Node
 
         float baseline_x_fx_, principal_x_, principal_y_, fx_, fy_;
 
-        cv_bridge::CvImageConstPtr cv_ptr_image;
+        cv_bridge::CvImagePtr cv_ptr_image;
 
         sensor_msgs::msg::CameraInfo camera_info_;
         std::shared_ptr<rclcpp::Subscription<stereo_msgs::msg::DisparityImage>> disparity_sub_;

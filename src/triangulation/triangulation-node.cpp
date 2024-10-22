@@ -21,10 +21,10 @@ TriangulationNode::TriangulationNode(sensor_msgs::msg::CameraInfo camera_info): 
 void TriangulationNode::GrabImage(const stereo_msgs::msg::DisparityImage::ConstSharedPtr disparity_image_msg)
 {
     auto pointcloudmsg = sensor_msgs::msg::PointCloud2();
-    
+    baseline_x_fx_ = disparity_image_msg->t/1000;
     try
     {
-         cv_ptr_image = cv_bridge::toCvShare(disparity_image_msg->image, "32FC1"); 
+         cv_ptr_image = cv_bridge::toCvCopy(disparity_image_msg->image, sensor_msgs::image_encodings::TYPE_32FC1); 
     }
     catch (cv_bridge::Exception& e)
     {
@@ -65,8 +65,8 @@ void TriangulationNode::GrabImage(const stereo_msgs::msg::DisparityImage::ConstS
     for (int i = 0; i < height; i++)
     {
         for(int j = 0; j < width; j++){
-            uint16_t disparity = cv_ptr_image->image.at<uint16_t>(i,j);
-            if(disparity >= 50){
+            float disparity = cv_ptr_image->image.at<float>(i,j);
+            if(disparity >= 130){
                 float z = -baseline_x_fx_ * fx_/ disparity;
                 float x = (i - principal_x_) * (z) / fx_;
                 float y = (j - principal_y_) * (z) / fy_;
@@ -79,5 +79,6 @@ void TriangulationNode::GrabImage(const stereo_msgs::msg::DisparityImage::ConstS
             }
         }
     }
+    //RCLCPP_INFO(this->get_logger(), "Received %f", disparity_image_msg->t);
     pointcloud_publisher_->publish(pointcloudmsg);
 }

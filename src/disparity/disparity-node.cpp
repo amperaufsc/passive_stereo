@@ -24,7 +24,7 @@ cv::Ptr<cv::ximgproc::DisparityWLSFilter> wls_filter = cv::ximgproc::createDispa
 cv::Ptr<cv::StereoMatcher> right_matcher = cv::ximgproc::createRightMatcher(stereo);
 
 
-DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::msg::CameraInfo infoR): Node("node")
+DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::msg::CameraInfo infoR): Node("disparity_node")
 {
     std::string left_image_topic = "/left/image_raw";
     std::string right_image_topic = "/right/image_raw";
@@ -37,14 +37,15 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
     right_sub = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(this, right_image_topic);
 
 
-    CalculateRectificationRemaps();
+    //CalculateRectificationRemaps();
 
     syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy>> (approximate_sync_policy(10), *left_sub, *right_sub);
     syncApproximate->registerCallback(std::bind(&DisparityNode::GrabStereo, this, std::placeholders::_1, std::placeholders::_2));
 
     params_sub = create_subscription<std_msgs::msg::Int16MultiArray>(params_topic, 10, std::bind(&DisparityNode::UpdateParameters, this, _1));
-
-
+    baseline = right_camera_info.p[3];
+    focal_length = left_camera_info.k[0];
+    
     disparity_publisher = this->create_publisher<stereo_msgs::msg::DisparityImage>("disparity_image",10);
 
     rect_left_publisher = this->create_publisher<sensor_msgs::msg::Image>("rect_left_image",10);
@@ -74,7 +75,9 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
     cv::Mat disp, disparity, raw_right_disparity_map, right_disparity;
     cv::Mat filtered_disparity_map, filtered_disparity_map_16u;
 
-    RectifyImages(imgL, imgR);
+    //RectifyImages(imgL, imgR);
+    cv::Mat rectImgL = cv_ptrLeft->image;
+    cv::Mat rectImgR = cv_ptrRight->image;
 
    
     stereo->compute(rectImgL, rectImgR, disp);
@@ -200,16 +203,15 @@ void DisparityNode::CalculateRectificationRemaps()
     rotation.at<double>(2, 1) = left_camera_info.r[7];
     rotation.at<double>(2, 2) = left_camera_info.r[8];
 
-    baseline = left_camera_info.p[3];
+    baseline = right_camera_info.p[3];
 
     translation.at<double>(0) = left_camera_info.p[3];
     translation.at<double>(1) = left_camera_info.p[7];
     translation.at<double>(2) = left_camera_info.p[11];
 
-
+    RCLCPP_INFO(this->get_logger(), "Baseline: %f", baseline);
     cv::stereoRectify(intrinsics_left, dist_coeffs_left, intrinsics_right, dist_coeffs_right, siz, rotation, translation, R1, R2, P1, P2, Q);
 
     cv::initUndistortRectifyMap(intrinsics_left, dist_coeffs_left, R1, P1,siz, CV_32FC1,left_map1, left_map2);
     cv::initUndistortRectifyMap(intrinsics_right, dist_coeffs_right, R2, P2,siz, CV_32FC1,right_map1, right_map2);
-
 }
