@@ -21,17 +21,24 @@ add_executable(disparity
         src/disparity/disparity.cpp
         src/disparity/disparity-node.cpp
 )
+ament_target_dependencies(disparity rclcpp sensor_msgs stereo_msgs cv_bridge message_filters)
+target_link_libraries(disparity ${OpenCV_LIBS})
+
+
 
 add_executable(triangulation
         src/triangulation/triangulation.cpp
         src/triangulation/triangulation-node.cpp
 )
-
-ament_target_dependencies(disparity rclcpp sensor_msgs stereo_msgs cv_bridge message_filters)
 ament_target_dependencies(triangulation rclcpp sensor_msgs stereo_msgs cv_bridge message_filters)
-
-target_link_libraries(disparity ${OpenCV_LIBS})
 target_link_libraries(triangulation ${OpenCV_LIBS})
+
+add_executable(triangulation_rgb
+        src/triangulation_rgb/triangulation_rgb.cpp
+        src/triangulation_rgb/triangulation_rgb-node.cpp
+)
+ament_target_dependencies(triangulation_rgb rclcpp sensor_msgs stereo_msgs cv_bridge message_filters)
+target_link_libraries(triangulation_rgb ${OpenCV_LIBS})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -45,9 +52,12 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-install(TARGETS disparity DESTINATION lib/${PROJECT_NAME})
-install(TARGETS triangulation DESTINATION lib/${PROJECT_NAME})
+install(TARGETS disparity
+                triangulation
+                triangulation_rgb
+        DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY cfg DESTINATION share/${PROJECT_NAME})
 
 ament_package()
