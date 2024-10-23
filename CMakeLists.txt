@@ -18,11 +18,20 @@ find_package(OpenCV)
 # find_package(<dependency> REQUIRED)
 
 add_executable(disparity
-        src/disparity.cpp
-        src/disparity-node.cpp
+        src/disparity/disparity.cpp
+        src/disparity/disparity-node.cpp
 )
+
+add_executable(triangulation
+        src/triangulation/triangulation.cpp
+        src/triangulation/triangulation-node.cpp
+)
+
 ament_target_dependencies(disparity rclcpp sensor_msgs stereo_msgs cv_bridge message_filters)
+ament_target_dependencies(triangulation rclcpp sensor_msgs stereo_msgs cv_bridge message_filters)
+
 target_link_libraries(disparity ${OpenCV_LIBS})
+target_link_libraries(triangulation ${OpenCV_LIBS})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -37,6 +46,7 @@ if(BUILD_TESTING)
 endif()
 
 install(TARGETS disparity DESTINATION lib/${PROJECT_NAME})
+install(TARGETS triangulation DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 

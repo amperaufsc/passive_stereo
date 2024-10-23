@@ -13,10 +13,10 @@ int main(int argc, char **argv)
     bool left_camera_info_received = false;
     bool right_camera_info_received = false;
 
-    auto info_node = std::make_shared<rclcpp::Node>("camera_info_subscriber");
+    auto info_node = std::make_shared<rclcpp::Node>("disparity_camera_info_subscriber");
 
-    left_camera_info_received = rclcpp::wait_for_message<sensor_msgs::msg::CameraInfo>(left_camera_info, info_node,left_info_topic, std::chrono::seconds(5));
     right_camera_info_received = rclcpp::wait_for_message<sensor_msgs::msg::CameraInfo>(right_camera_info, info_node,right_info_topic, std::chrono::seconds(5));
+    left_camera_info_received = rclcpp::wait_for_message<sensor_msgs::msg::CameraInfo>(left_camera_info, info_node,left_info_topic, std::chrono::seconds(5));
 
     if(left_camera_info_received && right_camera_info_received){
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Camera info received");

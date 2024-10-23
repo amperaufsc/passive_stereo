@@ -11,6 +11,7 @@ def generate_launch_description():
         LaunchArg( 'left_info', default_value=['/stereo_left/camera_info']),
         LaunchArg( 'right_info', default_value=['/stereo_right/camera_info']),
         LaunchArg( 'stereo_params', default_value=['/sm2/disparity/stereo_params']),
+        LaunchArg('disparity', default_value=['/sm2/disparity/disparity_image']),
 
        
         Node(
@@ -24,6 +25,16 @@ def generate_launch_description():
                 ('/left/camera_info', LaunchConfig('left_info')),
                 ('/right/camera_info', LaunchConfig('right_info')),
                 ('/params', LaunchConfig('stereo_params'))
+            ]
+        ),
+        Node(
+            package='disparity',
+            namespace='/sm2/triangulation',
+            executable='triangulation',
+            name='triangulation',
+            remappings=[
+                ('/disparity/disparity_image',  LaunchConfig('disparity')),
+                ('/left/camera_info', LaunchConfig('left_info'))
             ]
         )
 
