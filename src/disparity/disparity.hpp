@@ -38,10 +38,12 @@ class DisparityNode : public rclcpp::Node
         using ImageMsg = sensor_msgs::msg::Image;
         typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image> approximate_sync_policy;
 
-        void GrabStereo(const sensor_msgs::msg::Image::ConstSharedPtr msgRGB, const sensor_msgs::msg::Image::ConstSharedPtr msgD);
+        void GrabStereo(const sensor_msgs::msg::Image::ConstSharedPtr msgLeft, const sensor_msgs::msg::Image::ConstSharedPtr msgRight);
         void RectifyImages(cv::Mat imgL, cv::Mat imgR);
         void CalculateRectificationRemaps();
         void UpdateParameters(const std_msgs::msg::Int16MultiArray::ConstSharedPtr params_message);
+
+        void loadYamlfile(const std::string &filename);
 
 
         cv::Mat left_map1, left_map2;
