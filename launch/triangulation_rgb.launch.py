@@ -52,8 +52,8 @@ def generate_launch_description():
         # Create an frame to depth_3d_points
         ExecuteProcess(
             cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
-                 '--yaw', '1.570796327',
-                 '--roll', '-1.570796327',
+                 '--yaw', '-1.570796327',
+                 '--roll', '1.570796327',
                  '--frame-id', 'left_camera_link',
                  '--child-frame-id', 'depth_map'],
             output='screen',
