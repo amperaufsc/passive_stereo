@@ -51,7 +51,7 @@ void TriangulationNode::GrabImages(const ImageMsg::ConstSharedPtr disp_msg,
 
     // Set PointCloud2 header
     pointcloudmsg.header.stamp = this->get_clock()->now();
-    pointcloudmsg.header.frame_id = "depth_map";
+    pointcloudmsg.header.frame_id = "left_camera";
     pointcloudmsg.width = 1;  // Points per row
     pointcloudmsg.height = height*width; // Number of rows
     pointcloudmsg.is_dense = false; // Allow NaN points
@@ -80,7 +80,7 @@ void TriangulationNode::GrabImages(const ImageMsg::ConstSharedPtr disp_msg,
             float disparity = disparity_data[i * width + j];
             if (disparity >= 0) {
                 // Compute 3D coordinates from disparity
-                float z = baseline_ * fx_ / (disparity);
+                float z = -baseline_ * fx_ / (disparity);
                 float x = (j - principal_x_) * z / fx_;
                 float y = (i - principal_y_) * z / fy_;
 

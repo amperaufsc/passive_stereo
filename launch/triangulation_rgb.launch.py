@@ -47,15 +47,5 @@ def generate_launch_description():
                 ('/left/image_raw', LaunchConfig('left_image')),
                 ('/left/camera_info', LaunchConfig('left_info'))
             ]
-        ),
-
-        # Create an frame to depth_3d_points
-        ExecuteProcess(
-            cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
-                 '--yaw', '-1.570796327',
-                 '--roll', '1.570796327',
-                 '--frame-id', 'left_camera_link',
-                 '--child-frame-id', 'depth_map'],
-            output='screen',
-        ),
+        )
     ])
