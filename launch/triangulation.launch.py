@@ -44,16 +44,7 @@ def generate_launch_description():
                 ('/disparity/disparity_image',  LaunchConfig('disparity')),
                 ('/left/camera_info', LaunchConfig('left_info'))
             ]
-        ),
-        # Create an frame to depth_3d_points
-        ExecuteProcess(
-            cmd=['/opt/ros/humble/lib/tf2_ros/static_transform_publisher',
-                 '--pitch', '-1.570796327',
-                 '--frame-id', 'left_camera_link',
-                 '--child-frame-id', 'depth_map'],
-            output='screen',
-        ),
-
+        )
     ])
 
 

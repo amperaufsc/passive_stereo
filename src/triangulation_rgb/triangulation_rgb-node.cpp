@@ -50,8 +50,8 @@ void TriangulationNode::GrabImages(const ImageMsg::ConstSharedPtr disp_msg,
     int height = cv_ptr_disp->image.rows;
 
     // Set PointCloud2 header
-    pointcloudmsg.header.stamp = this->get_clock()->now();
-    pointcloudmsg.header.frame_id = "left_camera";
+    pointcloudmsg.header.stamp = disp_msg->header.stamp;
+    pointcloudmsg.header.frame_id = "left_camera_link";
     pointcloudmsg.width = 1;  // Points per row
     pointcloudmsg.height = height*width; // Number of rows
     pointcloudmsg.is_dense = false; // Allow NaN points
