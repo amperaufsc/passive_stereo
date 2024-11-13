@@ -48,22 +48,25 @@ void TriangulationNode::GrabImages(const ImageMsg::ConstSharedPtr disp_msg,
 
     int width = cv_ptr_disp->image.cols;
     int height = cv_ptr_disp->image.rows;
+    int sampling_factor = 5; // Adjust this factor as needed
 
     // Set PointCloud2 header
-    pointcloudmsg.header.stamp = disp_msg->header.stamp;
+    pointcloudmsg.header.stamp = now();// disp_msg->header.stamp;
     pointcloudmsg.header.frame_id = "left_camera_link";
-    pointcloudmsg.width = 1;  // Points per row
-    pointcloudmsg.height = height*width; // Number of rows
+    // pointcloudmsg.width = 1;  // Points per row
+    // pointcloudmsg.height = height*width; // Number of rows
+    pointcloudmsg.height = height / sampling_factor;
+    pointcloudmsg.width = width / sampling_factor;
     pointcloudmsg.is_dense = false; // Allow NaN points
     pointcloudmsg.is_bigendian = false; // Little-endian (default for most systems)
 
     // Add fields for x, y, z, and rgb
     sensor_msgs::PointCloud2Modifier modifier(pointcloudmsg);
     modifier.setPointCloud2Fields(4,
-        "x", 1, sensor_msgs::msg::PointField::FLOAT32,
-        "y", 1, sensor_msgs::msg::PointField::FLOAT32,
-        "z", 1, sensor_msgs::msg::PointField::FLOAT32,
-        "rgb", 1, sensor_msgs::msg::PointField::FLOAT32);
+                                  "x", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                  "y", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                  "z", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                  "rgb", 1, sensor_msgs::msg::PointField::FLOAT32);
 
     // Set point step and row step
     pointcloudmsg.point_step = 16;  // 4 fields * 4 bytes (x, y, z, rgb)
@@ -72,11 +75,12 @@ void TriangulationNode::GrabImages(const ImageMsg::ConstSharedPtr disp_msg,
     // Resize the point cloud data array
     pointcloudmsg.data.resize(pointcloudmsg.row_step * pointcloudmsg.height);
     float* disparity_data = (float*)cv_ptr_disp->image.data;
-    #pragma omp parallel for
+
+#pragma omp parallel for
     // Iterate through disparity map and generate point cloud
-    for (int i = 0; i < height; ++i) {
-        for (int j = 0; j < width; ++j) {
-            // float disparity = cv_ptr_disp->image.at<float>(i, j);
+    // Iterate through disparity map with downsampling
+    for (int i = 0; i < height; i += sampling_factor) {
+        for (int j = 0; j < width; j += sampling_factor) {
             float disparity = disparity_data[i * width + j];
             if (disparity >= 0) {
                 // Compute 3D coordinates from disparity
@@ -87,14 +91,14 @@ void TriangulationNode::GrabImages(const ImageMsg::ConstSharedPtr disp_msg,
                 // Get RGB from the left image
                 cv::Vec3b bgr = cv_ptr_left->image.at<cv::Vec3b>(i, j);
                 uint8_t r = bgr[2], g = bgr[1], b = bgr[0];
-                // Packed RGB value
                 uint32_t rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
 
                 // Copy x, y, z, and rgb to the point cloud message data
-                memcpy(&pointcloudmsg.data[(i * width + j) * 16], &x, sizeof(float));
-                memcpy(&pointcloudmsg.data[(i * width + j) * 16 + 4], &y, sizeof(float));
-                memcpy(&pointcloudmsg.data[(i * width + j) * 16 + 8], &z, sizeof(float));
-                memcpy(&pointcloudmsg.data[(i * width + j) * 16 + 12], &rgb, sizeof(uint32_t));
+                int index = (i / sampling_factor * pointcloudmsg.width + j / sampling_factor) * 16;
+                memcpy(&pointcloudmsg.data[index], &x, sizeof(float));
+                memcpy(&pointcloudmsg.data[index + 4], &y, sizeof(float));
+                memcpy(&pointcloudmsg.data[index + 8], &z, sizeof(float));
+                memcpy(&pointcloudmsg.data[index + 12], &rgb, sizeof(uint32_t));
             }
         }
     }
