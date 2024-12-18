@@ -57,7 +57,8 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
         approximate_sync_policy(10), *left_sub, *right_sub);
     syncApproximate->registerCallback(std::bind(&DisparityNode::GrabStereo, this, std::placeholders::_1,
                                                 std::placeholders::_2));
-
+    age_penalty = 0.03;
+    syncApproximate->setAgePenalty(age_penalty);
     params_sub = create_subscription<std_msgs::msg::Int16MultiArray>(params_topic, 10,
                                                                      std::bind(&DisparityNode::UpdateParameters, this,
                                                                                _1));
@@ -71,62 +72,70 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
 }
 
 void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const ImageMsg::ConstSharedPtr msgRight) {
-    try {
-        cv_ptrLeft = cv_bridge::toCvShare(msgLeft, msgLeft->encoding);
-        cv_ptrRight = cv_bridge::toCvShare(msgRight, msgLeft->encoding);
-    } catch (cv_bridge::Exception &e) {
-        RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-        return;
+    float time_diff = float(msgLeft->header.stamp.sec-msgRight->header.stamp.sec)+(msgLeft->header.stamp.nanosec-msgRight->header.stamp.nanosec)/1e9;
+    time_diff = std::abs(time_diff);
+    if(time_diff < age_penalty)
+    {
+
+        RCLCPP_INFO(this->get_logger(), "Delta_t: %.9f", time_diff);
+
+        try {
+            cv_ptrLeft = cv_bridge::toCvShare(msgLeft, msgLeft->encoding);
+            cv_ptrRight = cv_bridge::toCvShare(msgRight, msgLeft->encoding);
+        } catch (cv_bridge::Exception &e) {
+            RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+            return;
+        }
+
+        auto imgmsg = sensor_msgs::msg::Image();
+        auto dispmsg = stereo_msgs::msg::DisparityImage();
+        cv::Mat rectImgL, rectImgR;
+        if(msgLeft->encoding == msgRight->encoding && msgLeft->encoding == "mono8") {
+            RCLCPP_ERROR(this->get_logger(), "mono8 encoding");
+            rectImgL = cv_ptrLeft->image;
+            rectImgR = cv_ptrRight->image;
+        }
+        else {
+            cv::cvtColor(cv_ptrLeft->image, rectImgL,  cv::COLOR_BGR2GRAY);
+            cv::cvtColor(cv_ptrRight->image, rectImgR,  cv::COLOR_BGR2GRAY);
+        }
+        cv::Mat disp, disparity, raw_right_disparity_map, right_disparity;
+        cv::Mat filtered_disparity_map, filtered_disparity_map_16u;
+
+        //RectifyImages(imgL, imgR);
+        // cv::Mat rectImgL = cv_ptrLeft->image;
+        // cv::Mat rectImgR = cv_ptrRight->image;
+
+
+        stereo->compute(rectImgL, rectImgR, disp);
+        disp.convertTo(disparity,CV_32FC1);
+
+
+        right_matcher->compute(rectImgR, rectImgL, raw_right_disparity_map);
+
+
+        wls_filter->filter(disp,
+                        rectImgL,
+                        filtered_disparity_map,
+                        raw_right_disparity_map);
+
+        raw_right_disparity_map.convertTo(right_disparity, CV_32FC1, 1);
+        filtered_disparity_map.convertTo(filtered_disparity_map_16u, CV_32FC1);
+        
+        cv_bridge::CvImage(std_msgs::msg::Header(), "32FC1", disparity).toImageMsg(imgmsg);
+
+        dispmsg.header = std_msgs::msg::Header();
+        // dispmsg.header.stamp = this->get_clock()->now();
+        dispmsg.header.stamp = msgLeft->header.stamp;
+        dispmsg.header.frame_id = msgLeft->header.frame_id;
+        dispmsg.image = imgmsg;
+        dispmsg.min_disparity = 0;
+        dispmsg.max_disparity = 1000;
+        dispmsg.f = focal_length;
+        dispmsg.t = baseline;
+        dispmsg.delta_d = 1;
+        disparity_publisher->publish(dispmsg);
     }
-
-    auto imgmsg = sensor_msgs::msg::Image();
-    auto dispmsg = stereo_msgs::msg::DisparityImage();
-    cv::Mat rectImgL, rectImgR;
-    if(msgLeft->encoding == msgRight->encoding && msgLeft->encoding == "mono8") {
-        RCLCPP_ERROR(this->get_logger(), "mono8 encoding");
-        rectImgL = cv_ptrLeft->image;
-        rectImgR = cv_ptrRight->image;
-    }
-    else {
-        cv::cvtColor(cv_ptrLeft->image, rectImgL,  cv::COLOR_BGR2GRAY);
-        cv::cvtColor(cv_ptrRight->image, rectImgR,  cv::COLOR_BGR2GRAY);
-    }
-    cv::Mat disp, disparity, raw_right_disparity_map, right_disparity;
-    cv::Mat filtered_disparity_map, filtered_disparity_map_16u;
-
-    //RectifyImages(imgL, imgR);
-    // cv::Mat rectImgL = cv_ptrLeft->image;
-    // cv::Mat rectImgR = cv_ptrRight->image;
-
-
-    stereo->compute(rectImgL, rectImgR, disp);
-    disp.convertTo(disparity,CV_32FC1);
-
-
-    right_matcher->compute(rectImgR, rectImgL, raw_right_disparity_map);
-
-
-    wls_filter->filter(disp,
-                       rectImgL,
-                       filtered_disparity_map,
-                       raw_right_disparity_map);
-
-    raw_right_disparity_map.convertTo(right_disparity, CV_32FC1, 1);
-    filtered_disparity_map.convertTo(filtered_disparity_map_16u, CV_32FC1);
-
-    cv_bridge::CvImage(std_msgs::msg::Header(), "32FC1", disparity).toImageMsg(imgmsg);
-
-    dispmsg.header = std_msgs::msg::Header();
-    // dispmsg.header.stamp = this->get_clock()->now();
-    dispmsg.header.stamp = msgLeft->header.stamp;
-    dispmsg.header.frame_id = msgLeft->header.frame_id;
-    dispmsg.image = imgmsg;
-    dispmsg.min_disparity = 0;
-    dispmsg.max_disparity = 1000;
-    dispmsg.f = focal_length;
-    dispmsg.t = baseline;
-    dispmsg.delta_d = 1;
-    disparity_publisher->publish(dispmsg);
 }
 
 void DisparityNode::UpdateParameters(const std_msgs::msg::Int16MultiArray::ConstSharedPtr params_message) {
@@ -160,11 +169,11 @@ void DisparityNode::RectifyImages(cv::Mat imgL, cv::Mat imgR) {
     auto leftimgmsg = sensor_msgs::msg::Image();
     auto rightimgmsg = sensor_msgs::msg::Image();
 
-    cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgL).toImageMsg(leftimgmsg);
-    rect_left_publisher->publish(leftimgmsg);
+    // cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgL).toImageMsg(leftimgmsg);
+    // rect_left_publisher->publish(leftimgmsg);
 
-    cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgR).toImageMsg(rightimgmsg);
-    rect_right_publisher->publish(rightimgmsg);
+    // cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", rectImgR).toImageMsg(rightimgmsg);
+    // rect_right_publisher->publish(rightimgmsg);
 }
 
 void DisparityNode::CalculateRectificationRemaps() {
