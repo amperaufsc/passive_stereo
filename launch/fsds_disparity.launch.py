@@ -1,7 +1,7 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument as LaunchArg
-from launch.substitutions import LaunchConfiguration as LaunchConfig
+from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
@@ -23,13 +23,13 @@ def generate_launch_description():
             executable='disparity',
             name='disparity',
             parameters=[{'stereo_params_file': PathJoinSubstitution(
-                [FindPackageShare('disparity'), 'cfg', LaunchConfig('yaml_file')])}],
+                [FindPackageShare('disparity'), 'cfg', LaunchConfiguration('yaml_file')])}],
             remappings=[
-                ('/left/image_raw', LaunchConfig('left_image')),
-                ('/right/image_raw', LaunchConfig('right_image')),
-                ('/left/camera_info', LaunchConfig('left_info')),
-                ('/right/camera_info', LaunchConfig('right_info')),
-                ('/params', LaunchConfig('stereo_params'))
+                ('/left/image_raw', LaunchConfiguration('left_image')),
+                ('/right/image_raw', LaunchConfiguration('right_image')),
+                ('/left/camera_info', LaunchConfiguration('left_info')),
+                ('/right/camera_info', LaunchConfiguration('right_info')),
+                ('/params', LaunchConfiguration('stereo_params'))
             ]
         )
 
