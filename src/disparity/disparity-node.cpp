@@ -72,8 +72,9 @@ DisparityNode::DisparityNode(sensor_msgs::msg::CameraInfo infoL, sensor_msgs::ms
 }
 
 void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const ImageMsg::ConstSharedPtr msgRight) {
-    float time_diff = float(msgLeft->header.stamp.sec-msgRight->header.stamp.sec)+(msgLeft->header.stamp.nanosec-msgRight->header.stamp.nanosec)/1e9;
-    time_diff = std::abs(time_diff);
+    int64_t left_total_ns = msgLeft->header.stamp.sec * 1e9 + msgLeft->header.stamp.nanosec;
+    int64_t right_total_ns = msgRight->header.stamp.sec * 1e9 + msgRight->header.stamp.nanosec;
+    float time_diff = float(std::abs(left_total_ns - right_total_ns)) / 1e9;
     if(time_diff < age_penalty)
     {
 
@@ -135,6 +136,10 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
         dispmsg.t = baseline;
         dispmsg.delta_d = 1;
         disparity_publisher->publish(dispmsg);
+    }
+    else
+    {
+        RCLCPP_INFO(this->get_logger(), "Time diff is too large: %.9f. Expected to be smaller than: %.9f", time_diff, age_penalty);
     }
 }
 
