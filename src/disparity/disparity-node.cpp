@@ -1,6 +1,5 @@
 #include "disparity.hpp"
-
-
+#include <opencv2/opencv.hpp>
 #include<string>
 
 using std::placeholders::_1;
@@ -135,6 +134,8 @@ void DisparityNode::GrabStereo(const ImageMsg::ConstSharedPtr msgLeft, const Ima
         dispmsg.t = baseline;
         dispmsg.delta_d = 1;
         disparity_publisher->publish(dispmsg);
+
+        cv::imshow("Disp Ampera", filtered_disparity_map);
     }
 }
 
