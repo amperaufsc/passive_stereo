@@ -27,8 +27,8 @@ def generate_launch_description():
             remappings=[
                 ('/left/image_raw', LaunchConfig('left_image')),
                 ('/right/image_raw', LaunchConfig('right_image')),
-                ('/left/camera_info', LaunchConfig('left_info')),
-                ('/right/camera_info', LaunchConfig('right_info')),
+                ('/oak/left/camera_info', LaunchConfig('left_info')),
+                ('/oak/right/camera_info', LaunchConfig('right_info')),
                 ('/params', LaunchConfig('stereo_params'))
             ]
         )
